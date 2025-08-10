@@ -654,6 +654,28 @@ export class SplitView extends EventEmitter implements Disposable {
       return;
     }
 
+    const item = this.viewItems[index];
+    size = Math.round(size);
+
+    // Handle snap behavior when size is 0
+    if (item.snap && size === 0) {
+      // When snap is enabled and size is 0, hide the pane
+      item.setVisible(false, item.size);
+      this.distributeEmptySpace(index);
+      this.layoutViews();
+      this.saveProportions();
+      this.emit("sashchange", index);
+      return;
+    } else if (item.snap && !item.visible && size > 0) {
+      // When snap is enabled and pane is hidden, show it when size > 0
+      item.setVisible(true, size);
+      this.distributeEmptySpace(index);
+      this.layoutViews();
+      this.saveProportions();
+      this.emit("sashchange", index);
+      return;
+    }
+
     const indexes = range(0, this.viewItems.length).filter((i) => i !== index);
 
     const lowPriorityIndexes = [
@@ -667,8 +689,6 @@ export class SplitView extends EventEmitter implements Disposable {
       (i) => this.viewItems[i].priority === LayoutPriority.High,
     );
 
-    const item = this.viewItems[index];
-    size = Math.round(size);
     size = clamp(size, item.minimumSize, Math.min(item.maximumSize, this.size));
 
     item.size = size;
@@ -682,13 +702,23 @@ export class SplitView extends EventEmitter implements Disposable {
 
       size = Math.round(size);
 
-      size = clamp(
-        size,
-        item.minimumSize,
-        Math.min(item.maximumSize, this.size),
-      );
+      // Handle snap behavior when size is 0 or near minimum
+      if (item.snap && size === 0) {
+        // When snap is enabled and size is 0, hide the pane
+        item.setVisible(false, item.size);
+      } else if (item.snap && !item.visible && size > 0) {
+        // When snap is enabled and pane is hidden, show it when size > 0
+        item.setVisible(true, size);
+      } else {
+        // Normal resize behavior
+        size = clamp(
+          size,
+          item.minimumSize,
+          Math.min(item.maximumSize, this.size),
+        );
 
-      item.size = size;
+        item.size = size;
+      }
     }
 
     this.contentSize = this.viewItems.reduce((r, i) => r + i.size, 0);
