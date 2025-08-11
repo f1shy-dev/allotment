@@ -446,6 +446,11 @@ export class SplitView extends EventEmitter implements Disposable {
         ? new VerticalViewItem(container, view, viewSize)
         : new HorizontalViewItem(container, view, viewSize);
 
+    // Handle snap-to-collapse behavior for defaultSizes (size 0 with snap enabled)
+    if (view.snap && typeof size === "number" && size === 0) {
+      item.setVisible(false, 0);
+    }
+
     this.viewItems.splice(index, 0, item);
 
     if (this.viewItems.length > 1) {
